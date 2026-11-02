@@ -561,3 +561,47 @@ button.row:active, .row.pressable:active { background: var(--card-pressed); }
 .stat-val { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-of { font-size: 17px; color: var(--text-2); font-weight: 500; }
 .stat-label { font-size: 13px; color: var(--text-2); }
+
+/* ---------- Rest timer (inline) ---------- */
+
+.rest {
+  position: relative;
+  overflow: hidden;
+  margin: 4px 2px 6px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  animation: rest-in 0.25s ease;
+}
+.rest-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transition: width 0.25s linear;
+}
+.rest-body { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 14px; }
+.rest-main { flex: 1; min-width: 0; }
+.rest-time { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rest-sub { font-size: 13px; font-weight: 500; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rest-btn {
+  flex: none;
+  min-width: 48px;
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--card);
+  color: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.rest.warn { background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--orange); }
+.rest.warn .rest-bar { background: color-mix(in srgb, var(--orange) 18%, transparent); }
+.rest.over { background: var(--green); color: #fff; animation: rest-pulse 1s ease-in-out 3; }
+.rest.over .rest-bar { display: none; }
+.rest.over .rest-btn { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.rest-go { font-size: 30px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.1; }
+
+@keyframes rest-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes rest-pulse { 50% { transform: scale(1.03); } }

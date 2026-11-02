@@ -18,6 +18,9 @@ import { WeekStrip, weekStart, type DayMark } from '../components/WeekStrip';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { IconPlus } from '../components/Icons';
 import { ExercisePicker } from './ExercisePicker';
+import { restTimer, useRestTimer } from '../lib/timer';
+import { unlockAudio } from '../lib/sound';
+import { useWakeLock } from '../lib/wakeLock';
 
 export function TodayTab() {
   const [date, setDate] = useState(todayISO());
@@ -25,6 +28,7 @@ export function TodayTab() {
   const [picking, setPicking] = useState(false);
   const [summary, setSummary] = useState(false);
   const today = todayISO();
+  const timer = useRestTimer();
 
   const data = useLiveQuery(async () => {
     const ws = weekStart(date);
@@ -61,6 +65,9 @@ export function TodayTab() {
   const exerciseIds = session?.exercises.map((e) => e.exerciseId) ?? [];
   const last = useLiveQuery(() => lastPerformance(date, exerciseIds), [date, exerciseIds.join()]);
 
+  const isTodayView = date === today;
+  useWakeLock((isTodayView && saved?.status === 'in-progress') || timer?.date === date);
+
   if (!data) return null;
 
   const marks = (d: string): DayMark => {
@@ -81,11 +88,30 @@ export function TodayTab() {
   const stats = saved ? sessionStats(saved) : null;
   const allDone = !!saved && stats!.total > 0 && stats!.sets === stats!.total;
 
+  /** Start rest after completing set i of exercise idx — unless it was the last set left. */
+  const startRest = (idx: number, i: number) => {
+    if (!session || date !== today) return;
+    const exs = session.exercises;
+    const open = (e: number, k: number) => !(e === idx && k === i) && !isSetDone(exs[e].sets[k]);
+    const se = exs[idx];
+    let label: string | null = null;
+    for (let k = i + 1; k < se.sets.length && !label; k++) if (open(idx, k)) label = `Set ${k + 1} of ${se.sets.length}`;
+    for (let e = idx + 1; e < exs.length && !label; e++)
+      if (exs[e].sets.some((_, k) => open(e, k))) label = `Next: ${data.exercises.get(exs[e].exerciseId)?.name ?? 'exercise'}`;
+    for (let e = 0; e <= idx && !label; e++)
+      exs[e].sets.forEach((_, k) => {
+        if (!label && open(e, k)) label = e === idx ? `Set ${k + 1} of ${se.sets.length}` : `Next: ${data.exercises.get(exs[e].exerciseId)?.name ?? 'exercise'}`;
+      });
+    if (!label) return restTimer.clear();
+    restTimer.start({ date, seId: se.id, setIdx: i, nextLabel: label }, se.restSec);
+  };
+
   const finish = async () => {
     await mutate((s) => {
       s.status = 'done';
       s.finishedAt = Date.now();
     });
+    if (timer?.date === date) restTimer.clear();
     setEditing(false);
     setSummary(true);
   };
@@ -93,6 +119,7 @@ export function TodayTab() {
   const reset = async () => {
     if (!saved) return;
     if (!confirm('Reset this workout? Everything logged for this day will be cleared and it will go back to the planned template.')) return;
+    if (timer?.date === date) restTimer.clear();
     await db.sessions.delete(saved.id);
     setEditing(false);
   };
@@ -102,7 +129,7 @@ export function TodayTab() {
     setPicking(false);
   };
 
-  const isToday = date === today;
+  const isToday = isTodayView;
 
   return (
     <div className="screen">
@@ -160,12 +187,20 @@ export function TodayTab() {
           se={se}
           exercise={data.exercises.get(se.exerciseId)}
           last={last?.get(se.exerciseId)?.sets}
+          timer={timer && timer.date === date && timer.seId === se.id ? timer : undefined}
           editing={editing}
           isFirst={idx === 0}
           isLast={idx === session.exercises.length - 1}
           onSetChange={(i, patch) => mutate((s) => Object.assign(s.exercises[idx].sets[i], patch))}
-          onComplete={(i, v) => mutate((s) => void Object.assign(s.exercises[idx].sets[i], v, { completedAt: Date.now() }))}
-          onUncomplete={(i) => mutate((s) => void delete s.exercises[idx].sets[i].completedAt)}
+          onComplete={(i, v) => {
+            unlockAudio(); // must run inside the tap for iOS to allow sound
+            startRest(idx, i);
+            mutate((s) => void Object.assign(s.exercises[idx].sets[i], v, { completedAt: Date.now() }));
+          }}
+          onUncomplete={(i) => {
+            restTimer.clearIf(se.id, i);
+            mutate((s) => void delete s.exercises[idx].sets[i].completedAt);
+          }}
           onAddSet={() => mutate((s) => void s.exercises[idx].sets.push({}))}
           onRemoveSet={() => mutate((s) => void s.exercises[idx].sets.pop())}
           onMove={(dir) =>
@@ -176,8 +211,10 @@ export function TodayTab() {
           }
           onRemove={() => {
             const name = data.exercises.get(se.exerciseId)?.name ?? 'this exercise';
-            if (confirm(`Remove ${name} from this workout? (Your template isn’t changed.)`))
+            if (confirm(`Remove ${name} from this workout? (Your template isn’t changed.)`)) {
+              if (timer?.seId === se.id) restTimer.clear();
               mutate((s) => void s.exercises.splice(idx, 1));
+            }
           }}
         />
       ))}

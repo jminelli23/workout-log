@@ -3,11 +3,15 @@ import { formatRest } from '../lib/dates';
 import { isSetDone } from '../lib/session';
 import { IconDown, IconTrash, IconUp } from './Icons';
 import { SetRow } from './SetRow';
+import { RestTimerInline } from './RestTimerInline';
+import type { RestTimer } from '../lib/timer';
+import { Fragment } from 'react';
 
 export function ExerciseCard({
   se,
   exercise,
   last,
+  timer,
   editing,
   isFirst,
   isLast,
@@ -22,6 +26,8 @@ export function ExerciseCard({
   se: SessionExercise;
   exercise: Exercise | undefined;
   last?: SessionSet[];
+  /** The active rest timer, if it belongs to this exercise. */
+  timer?: RestTimer;
   editing: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -88,8 +94,8 @@ export function ExerciseCard({
       </div>
 
       {se.sets.map((set, i) => (
+        <Fragment key={i}>
         <SetRow
-          key={i}
           index={i}
           set={set}
           kind={kind}
@@ -98,6 +104,8 @@ export function ExerciseCard({
           onComplete={(v) => onComplete(i, v)}
           onUncomplete={() => onUncomplete(i)}
         />
+        {timer && timer.setIdx === i && <RestTimerInline timer={timer} />}
+        </Fragment>
       ))}
 
       <div className="ex-foot">
