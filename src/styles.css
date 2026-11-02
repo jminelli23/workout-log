@@ -13,7 +13,7 @@
   --green: #34c759;
   --red: #ff3b30;
   --orange: #ff9500;
-  --bar-bg: rgba(249, 249, 249, 0.86);
+  --bar-bg: rgba(249, 249, 249, 0.94);
   --radius: 10px;
   --tabbar-h: 50px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -37,7 +37,7 @@
     --green: #30d158;
     --red: #ff453a;
     --orange: #ff9f0a;
-    --bar-bg: rgba(22, 22, 23, 0.86);
+    --bar-bg: rgba(22, 22, 23, 0.94);
   }
 }
 
@@ -364,3 +364,200 @@ button.row:active, .row.pressable:active { background: var(--card-pressed); }
 
 .push-enter { animation: push 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes push { from { transform: translateX(30%); opacity: 0.4; } }
+
+/* ---------- Today: week strip ---------- */
+
+.weekstrip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 4px 8px 8px;
+  background: var(--bar-bg);
+  border-bottom: 0.5px solid var(--sep);
+  position: sticky;
+  top: calc(44px + var(--safe-top));
+  z-index: 9;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  touch-action: pan-y;
+}
+.navbar:has(+ .weekstrip) { border-bottom: 0; }
+.wd {
+  border: 0;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0;
+  min-height: 60px;
+}
+.wd-letter { font-size: 12px; color: var(--text-2); font-weight: 500; }
+.wd-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+.wd.today .wd-num { color: var(--accent); font-weight: 600; }
+.wd.sel .wd-num { background: var(--text); color: var(--bg); font-weight: 600; }
+.wd.sel.today .wd-num { background: var(--accent); color: #fff; }
+.wd-dot { width: 6px; height: 6px; border-radius: 50%; }
+.wd-dot.planned { background: var(--text-3); }
+.wd-dot.progress { background: var(--orange); }
+.wd-dot.done { background: var(--green); }
+
+.day-head { padding: 12px 16px 8px; }
+.day-date { font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-2); letter-spacing: 0.02em; }
+.done-pill {
+  margin-top: 8px;
+  border: 0;
+  border-radius: 14px;
+  padding: 5px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+  color: var(--green);
+}
+
+/* ---------- Exercise cards & set rows ---------- */
+
+.ex-card {
+  background: var(--card);
+  border-radius: 12px;
+  margin: 0 12px 12px;
+  padding: 12px 10px 4px;
+}
+.ex-head { display: flex; align-items: center; gap: 2px; padding: 0 4px 8px; min-height: 44px; }
+.ex-name { font-size: 17px; font-weight: 600; color: var(--accent); }
+.ex-name.complete { color: var(--green); }
+
+.setrow {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr 44px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.setrow.done { background: color-mix(in srgb, var(--green) 14%, transparent); }
+.setrow-head { padding-top: 0; padding-bottom: 0; }
+.setrow-head .set-num,
+.col-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-2);
+  text-align: center;
+}
+.set-num { text-align: center; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+.numfield {
+  display: flex;
+  align-items: center;
+  background: var(--fill);
+  border-radius: 8px;
+  height: 40px;
+  min-width: 0;
+}
+.setrow.done .numfield { background: transparent; }
+.numfield button {
+  flex: none;
+  width: 32px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+}
+.numfield button:active { color: var(--accent); }
+.numfield input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 40px;
+  border: 0;
+  background: none;
+  text-align: center;
+  font-size: 17px; /* ≥16px stops iOS zooming on focus */
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  padding: 0;
+}
+.numfield input::placeholder { color: var(--text-3); font-weight: 500; }
+
+.set-check {
+  width: 44px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--fill);
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.set-check svg { width: 22px; height: 22px; }
+.set-check.on { background: var(--green); color: #fff; }
+.set-check-spacer, .numfield-spacer { display: block; }
+
+.ex-foot { display: flex; justify-content: space-between; padding: 2px 4px; }
+.link-btn {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 500;
+  min-height: 40px;
+  padding: 0 4px;
+}
+.link-btn.muted { color: var(--text-2); }
+
+/* ---------- Buttons & banners ---------- */
+
+.day-actions { display: grid; gap: 10px; padding: 8px 16px 16px; }
+.btn-primary, .btn-secondary {
+  height: 50px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:disabled { opacity: 0.4; }
+.btn-primary.small { height: 36px; padding: 0 16px; border-radius: 18px; font-size: 15px; }
+.btn-secondary { background: var(--accent-soft); color: var(--accent); }
+.btn-text { border: 0; background: none; min-height: 44px; color: var(--accent); }
+.btn-text.danger { color: var(--red); }
+
+.finish-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 12px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--green) 16%, var(--card));
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+  padding: 20px 16px;
+}
+.stat-val { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-of { font-size: 17px; color: var(--text-2); font-weight: 500; }
+.stat-label { font-size: 13px; color: var(--text-2); }

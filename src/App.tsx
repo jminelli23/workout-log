@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { IconCalendar, IconProgram, IconSettings, IconToday } from './components/Icons';
 import { Placeholder } from './components/ui';
 import { ProgramTab } from './screens/ProgramTab';
-import { TodayPreview } from './screens/TodayPreview';
+import { TodayTab } from './screens/TodayTab';
 
 type Tab = 'today' | 'calendar' | 'program' | 'settings';
 
@@ -14,11 +14,11 @@ const TABS: { id: Tab; label: string; Icon: typeof IconToday }[] = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('program');
+  const [tab, setTab] = useState<Tab>('today');
 
   return (
     <>
-      {tab === 'today' && <TodayPreview />}
+      {tab === 'today' && <TodayTab />}
       {tab === 'calendar' && <Placeholder title="Calendar" text="The monthly calendar arrives in step 4." />}
       {tab === 'program' && <ProgramTab />}
       {tab === 'settings' && <Placeholder title="Settings" text="Backup, restore and import arrive in step 6." />}
