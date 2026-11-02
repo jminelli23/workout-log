@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { db } from '../lib/db';
-import { addDays, formatLong, todayISO } from '../lib/dates';
-import { plannedTemplateId } from '../lib/schedule';
+import { addDays, formatLong, formatShort, fromISO, todayISO, WEEKDAY_LONG } from '../lib/dates';
+import { acknowledgeMissed, loadSchedule, moveWorkout, plannedFor, shiftScheduleFrom, useMissedWorkout } from '../lib/schedule';
 import {
   formatWeight,
   isSetDone,
@@ -22,35 +22,30 @@ import { restTimer, useRestTimer } from '../lib/timer';
 import { unlockAudio } from '../lib/sound';
 import { useWakeLock } from '../lib/wakeLock';
 
-export function TodayTab() {
-  const [date, setDate] = useState(todayISO());
+export function TodayTab({ date, setDate }: { date: string; setDate: (d: string) => void }) {
+  const [moving, setMoving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const [summary, setSummary] = useState(false);
   const today = todayISO();
   const timer = useRestTimer();
+  const missed = useMissedWorkout();
 
   const data = useLiveQuery(async () => {
     const ws = weekStart(date);
-    const [program, shifts, overrides, templates, exercises, weekSessions] = await Promise.all([
-      db.program.get('main'),
-      db.shifts.toArray(),
-      db.overrides.toArray(),
-      db.templates.toArray(),
+    const [sched, exercises, weekSessions] = await Promise.all([
+      loadSchedule(),
       db.exercises.toArray(),
       db.sessions.where('date').between(ws, addDays(ws, 6), true, true).toArray(),
     ]);
     return {
-      program,
-      shifts,
-      overrides: new Map(overrides.map((o) => [o.date, o])),
-      templates: new Map(templates.map((t) => [t.id, t])),
+      ...sched,
       exercises: new Map(exercises.map((e) => [e.id, e])),
       weekSessions: new Map(weekSessions.map((s) => [s.date, s])),
     };
   }, [date]);
 
-  const planned = data ? plannedTemplateId(date, data.program, data.shifts, data.overrides) : null;
+  const planned = data ? plannedFor(date, data) : null;
   const tpl = planned ? data?.templates.get(planned) : undefined;
   const saved = data?.weekSessions.get(date);
 
@@ -74,7 +69,8 @@ export function TodayTab() {
     const s = data.weekSessions.get(d);
     if (s?.status === 'done') return 'done';
     if (s) return 'progress';
-    return plannedTemplateId(d, data.program, data.shifts, data.overrides) ? 'planned' : undefined;
+    if (!plannedFor(d, data)) return undefined;
+    return d < today ? 'missed' : 'planned';
   };
 
   const select = (d: string) => {
@@ -156,12 +152,39 @@ export function TodayTab() {
         <h1 className="large-title" style={{ padding: 0 }}>
           {session?.name ?? 'Rest Day'}
         </h1>
+        {!saved && tpl && (
+          <button className="link-btn" style={{ paddingLeft: 0 }} onClick={() => setMoving(true)}>
+            Move to another day…
+          </button>
+        )}
         {saved?.status === 'done' && stats && (
           <button className="done-pill" onClick={() => setSummary(true)}>
             ✓ Completed · {stats.sets} sets · {stats.durationMin} min
           </button>
         )}
       </div>
+
+      {isToday && missed && (
+        <div className="missed-banner">
+          <div>
+            <strong>
+              You missed {missed.name} on{' '}
+              {missed.days < 7 ? WEEKDAY_LONG[fromISO(missed.date).getDay()] : formatShort(missed.date)}.
+            </strong>
+            <div className="row-sub" style={{ whiteSpace: 'normal' }}>
+              Shift your schedule so it’s today? Everything after it moves {missed.days} day{missed.days === 1 ? '' : 's'} later.
+            </div>
+          </div>
+          <div className="missed-actions">
+            <button className="btn-text" onClick={() => acknowledgeMissed(missed.all)}>
+              Keep as Missed
+            </button>
+            <button className="btn-primary small" onClick={() => shiftScheduleFrom(missed.date)}>
+              Shift Schedule
+            </button>
+          </div>
+        </div>
+      )}
 
       {!session && (
         <div className="empty">
@@ -256,6 +279,19 @@ export function TodayTab() {
         </Sheet>
       )}
 
+      {moving && tpl && (
+        <MoveSheet
+          from={date}
+          templateId={tpl.id}
+          templateName={tpl.name}
+          onClose={() => setMoving(false)}
+          onMoved={(to) => {
+            setMoving(false);
+            select(to);
+          }}
+        />
+      )}
+
       {summary && saved && <SummarySheet session={saved} exercises={data.exercises} onClose={() => setSummary(false)} />}
     </div>
   );
@@ -319,6 +355,73 @@ function SummarySheet({
                   </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+function MoveSheet({
+  from,
+  templateId,
+  templateName,
+  onClose,
+  onMoved,
+}: {
+  from: string;
+  templateId: string;
+  templateName: string;
+  onClose: () => void;
+  onMoved: (to: string) => void;
+}) {
+  const today = todayISO();
+  const start = addDays(today, -7);
+  const days = Array.from({ length: 36 }, (_, i) => addDays(start, i)).filter((d) => d !== from);
+  const info = useLiveQuery(async () => {
+    const [sched, sessions] = await Promise.all([
+      loadSchedule(),
+      db.sessions.where('date').between(start, addDays(start, 36)).toArray(),
+    ]);
+    return { sched, logged: new Set(sessions.map((s) => s.date)) };
+  });
+  if (!info) return null;
+
+  const pick = async (to: string, existing: string | undefined) => {
+    if (existing && !confirm(`${formatShort(to)} already has ${existing}. Replace it with ${templateName}?`)) return;
+    await moveWorkout(from, to, templateId);
+    onMoved(to);
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      <NavBar
+        title={`Move ${templateName}`}
+        left={
+          <button className="nav-btn" onClick={onClose}>
+            Cancel
+          </button>
+        }
+      />
+      <div className="section-footer" style={{ padding: '12px 32px 8px' }}>
+        Only this workout moves. The rest of your schedule stays the same.
+      </div>
+      <div className="section">
+        <div className="list">
+          {days.map((d) => {
+            const logged = info.logged.has(d);
+            const tid = plannedFor(d, info.sched);
+            const existing = tid ? info.sched.templates.get(tid)?.name : undefined;
+            return (
+              <button key={d} className="row" disabled={logged} onClick={() => pick(d, existing)} style={{ opacity: logged ? 0.4 : 1 }}>
+                <div className="row-main">
+                  <div className="row-title" style={{ fontWeight: d === today ? 600 : undefined }}>
+                    {d === today ? 'Today' : formatLong(d)}
+                  </div>
+                  <div className="row-sub">{logged ? 'Already logged' : existing ?? 'Rest'}</div>
+                </div>
+              </button>
             );
           })}
         </div>

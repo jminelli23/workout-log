@@ -605,3 +605,79 @@ button.row:active, .row.pressable:active { background: var(--card-pressed); }
 
 @keyframes rest-in { from { opacity: 0; transform: translateY(-6px); } }
 @keyframes rest-pulse { 50% { transform: scale(1.03); } }
+.wd-dot.missed { background: var(--red); }
+
+.missed-banner {
+  margin: 0 12px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--orange) 14%, var(--card));
+  display: grid;
+  gap: 8px;
+}
+.missed-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+
+/* ---------- Calendar ---------- */
+
+.cal-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 16px; }
+.cal-year { color: var(--accent); font-weight: 700; }
+.cal-arrows { display: flex; }
+.cal-arrows .icon-btn svg { width: 13px; height: 21px; }
+
+.cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0 8px;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.cal-h { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-2); padding: 8px 0 4px; }
+.cal-cell {
+  border: 0;
+  background: none;
+  border-top: 0.5px solid var(--sep);
+  min-height: 68px;
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.cal-cell:active { background: var(--card-pressed); }
+.cal-cell.out > * { opacity: 0.35; }
+.cal-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-cell.today .cal-num { background: var(--accent); color: #fff; font-weight: 600; }
+.cal-label {
+  max-width: 100%;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 2px 3px;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-label.planned { background: var(--accent-soft); color: var(--accent); }
+.cal-label.progress { background: color-mix(in srgb, var(--orange) 20%, transparent); color: var(--orange); }
+.cal-label.done { background: var(--green); color: #fff; }
+.cal-label.missed { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); text-decoration: line-through; }
+
+.cal-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 12px 16px; font-size: 13px; color: var(--text-2); }
+.cal-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.cal-legend i.planned { background: var(--accent-soft); border: 1px solid var(--accent); }
+.cal-legend i.progress { background: var(--orange); }
+.cal-legend i.done { background: var(--green); }
+.cal-legend i.missed { background: color-mix(in srgb, var(--red) 40%, transparent); }

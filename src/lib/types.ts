@@ -79,11 +79,14 @@ export interface Program {
 
 /**
  * Recorded when the user accepts "You missed X. Shift schedule?".
- * Every planned day AFTER missedDate moves one day later.
+ * The program from missedDate onward moves `days` later, so the missed
+ * workout lands on the day the shift was accepted.
  */
 export interface ScheduleShift {
   id?: number;
   missedDate: string;
+  /** How many days later everything moves. */
+  days: number;
   createdAt: number;
 }
 

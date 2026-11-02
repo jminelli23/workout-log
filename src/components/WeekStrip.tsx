@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { addDays, fromISO, todayISO } from '../lib/dates';
 
-export type DayMark = 'planned' | 'done' | 'progress' | undefined;
+export type DayMark = 'planned' | 'done' | 'progress' | 'missed' | undefined;
 
 const LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
