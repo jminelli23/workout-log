@@ -23,6 +23,11 @@ export function RestTimerInline({ timer }: { timer: RestTimer }) {
   const warn = !over && leftSec <= 10;
   const pct = over ? 100 : Math.min(100, Math.max(0, ((total - leftMs) / total) * 100));
 
+  // Forgotten timers clear themselves after 10 minutes of overtime.
+  useEffect(() => {
+    if (-leftMs > 10 * 60 * 1000) restTimer.clear();
+  }, [leftMs]);
+
   // Vibrate at zero where supported (not on iPhone — Safari has no vibration API).
   useEffect(() => {
     if (over && 'vibrate' in navigator) navigator.vibrate?.([200, 100, 200]);

@@ -753,3 +753,20 @@ button.row:active, .row.pressable:active { background: var(--card-pressed); }
   margin-top: 2px;
 }
 .swapped { font-size: 13px; font-weight: 600; color: var(--orange); margin-top: 3px; }
+
+/* ---------- Whole-workout clock (nav bar) ---------- */
+
+.workout-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: var(--fill);
+}
+.workout-clock.done { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.clock-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: clock-blink 2s ease-in-out infinite; }
+@keyframes clock-blink { 50% { opacity: 0.3; } }

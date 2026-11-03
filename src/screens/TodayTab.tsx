@@ -18,6 +18,7 @@ import type { Exercise, Session } from '../lib/types';
 import { NavBar, Sheet } from '../components/ui';
 import { WeekStrip, weekStart, type DayMark } from '../components/WeekStrip';
 import { ExerciseCard } from '../components/ExerciseCard';
+import { WorkoutClock } from '../components/WorkoutClock';
 import { IconPlus } from '../components/Icons';
 import { ExercisePicker } from './ExercisePicker';
 import { restTimer, useRestTimer } from '../lib/timer';
@@ -168,6 +169,7 @@ export function TodayTab({ date, setDate }: { date: string; setDate: (d: string)
   return (
     <div className="screen">
       <NavBar
+        title={saved && saved.startedAt > 0 ? <WorkoutClock startedAt={saved.startedAt} finishedAt={saved.finishedAt} /> : undefined}
         left={
           !isToday ? (
             <button className="nav-btn" onClick={() => select(today)}>

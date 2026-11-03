@@ -8,7 +8,7 @@ export function NavBar({
   right,
   left,
 }: {
-  title?: string;
+  title?: ReactNode;
   back?: string;
   onBack?: () => void;
   right?: ReactNode;
