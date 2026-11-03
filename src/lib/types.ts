@@ -118,6 +118,8 @@ export interface SessionExercise {
   targetSec?: number;
   notes?: string;
   supersetId?: string;
+  /** Planned exercise this one replaced for the day ("Swap"). */
+  swappedFrom?: string;
   sets: SessionSet[];
 }
 

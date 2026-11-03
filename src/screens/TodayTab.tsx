@@ -26,6 +26,8 @@ import { useWakeLock } from '../lib/wakeLock';
 
 export function TodayTab({ date, setDate }: { date: string; setDate: (d: string) => void }) {
   const [moving, setMoving] = useState(false);
+  /** Index of the exercise being swapped, if any. */
+  const [swapping, setSwapping] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const [summary, setSummary] = useState(false);
@@ -137,6 +139,25 @@ export function TodayTab({ date, setDate }: { date: string; setDate: (d: string)
     setEditing(false);
   };
 
+  /** Replace exercise idx with another for this day only. */
+  const swapExercise = (idx: number, e: Exercise) => {
+    if (!session) return;
+    const se = session.exercises[idx];
+    const done = se.sets.filter(isSetDone).length;
+    const oldName = data.exercises.get(se.exerciseId)?.name ?? 'this exercise';
+    if (done && !confirm(`Swap ${oldName} for ${e.name}? The ${done} set${done === 1 ? '' : 's'} you logged for ${oldName} will be cleared.`)) return;
+    if (timer?.seId === se.id) restTimer.clear();
+    mutate((s) => {
+      const x = s.exercises[idx];
+      const original = x.swappedFrom ?? x.exerciseId;
+      x.exerciseId = e.id;
+      x.swappedFrom = e.id === original ? undefined : original;
+      if (e.kind === 'duration' && !x.targetSec) x.targetSec = 60;
+      x.sets = x.sets.map(() => ({}));
+    });
+    setSwapping(null);
+  };
+
   const addExercise = (e: Exercise) => {
     mutate((s) => void s.exercises.push(newSessionExercise(e)));
     setPicking(false);
@@ -229,6 +250,8 @@ export function TodayTab({ date, setDate }: { date: string; setDate: (d: string)
           last={last?.get(se.exerciseId)?.sets}
           timer={timer && timer.date === date && timer.seId === se.id ? timer : undefined}
           superset={ssPos[idx]}
+          swappedFromName={se.swappedFrom ? data.exercises.get(se.swappedFrom)?.name : undefined}
+          onSwap={() => setSwapping(idx)}
           editing={editing}
           isFirst={idx === 0}
           isLast={idx === session.exercises.length - 1}
@@ -294,6 +317,28 @@ export function TodayTab({ date, setDate }: { date: string; setDate: (d: string)
             }
           />
           <ExercisePicker onPick={addExercise} />
+        </Sheet>
+      )}
+
+      {swapping !== null && session?.exercises[swapping] && (
+        <Sheet onClose={() => setSwapping(null)}>
+          <NavBar
+            title="Swap Exercise"
+            left={
+              <button className="nav-btn" onClick={() => setSwapping(null)}>
+                Cancel
+              </button>
+            }
+          />
+          <div className="section-footer" style={{ padding: '12px 32px 0' }}>
+            Replaces {data.exercises.get(session.exercises[swapping].exerciseId)?.name} for today only. Your template isn’t
+            changed. Sets, targets and rest stay the same.
+          </div>
+          <ExercisePicker
+            initialMuscle={data.exercises.get(session.exercises[swapping].exerciseId)?.muscles[0]}
+            exclude={session.exercises[swapping].exerciseId}
+            onPick={(e) => swapExercise(swapping, e)}
+          />
         </Sheet>
       )}
 

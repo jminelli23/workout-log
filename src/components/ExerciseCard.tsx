@@ -13,6 +13,8 @@ export function ExerciseCard({
   last,
   timer,
   superset,
+  swappedFromName,
+  onSwap,
   editing,
   isFirst,
   isLast,
@@ -30,6 +32,9 @@ export function ExerciseCard({
   /** The active rest timer, if it belongs to this exercise. */
   timer?: RestTimer;
   superset?: SupersetPos;
+  /** Name of the planned exercise this one replaced today. */
+  swappedFromName?: string;
+  onSwap: () => void;
   editing: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -73,8 +78,14 @@ export function ExerciseCard({
             {target} · Rest {formatRest(se.restSec)}
             {doneCount > 0 && !allDone && ` · ${doneCount}/${se.sets.length} done`}
           </div>
+          {swappedFromName && <div className="swapped">⇄ Instead of {swappedFromName}</div>}
           {se.notes && <div className="ex-notes">{se.notes}</div>}
         </div>
+        {!editing && (
+          <button className="swap-btn" onClick={onSwap} aria-label="Swap exercise">
+            ⇄ Swap
+          </button>
+        )}
         {editing && (
           <>
             <button className="icon-btn" aria-label="Move up" disabled={isFirst} onClick={() => onMove(-1)}>

@@ -11,14 +11,44 @@ let scheduled: AudioScheduledSourceNode[] = [];
 
 type NavWithAudioSession = Navigator & { audioSession?: { type: string } };
 
-export function unlockAudio() {
+/**
+ * 'mix'  — chimes mix with Spotify/Apple Music (default). iOS then also mutes
+ *          them when the silent switch is on.
+ * 'loud' — chimes play through the silent switch, but iOS pauses other audio.
+ */
+export type SoundMode = 'mix' | 'loud';
+const MODE_KEY = 'timerSoundMode';
+
+export function getSoundMode(): SoundMode {
   try {
-    // Safari 17+: play through the silent switch, like a music app would.
+    return localStorage.getItem(MODE_KEY) === 'loud' ? 'loud' : 'mix';
+  } catch {
+    return 'mix';
+  }
+}
+export function setSoundMode(m: SoundMode) {
+  try {
+    localStorage.setItem(MODE_KEY, m);
+  } catch {
+    /* storage unavailable */
+  }
+  applyAudioSession();
+}
+
+function applyAudioSession() {
+  try {
+    // Safari 17+ audio session: 'ambient' mixes with other apps' audio;
+    // 'playback' ignores the silent switch but interrupts other audio.
     const nav = navigator as NavWithAudioSession;
-    if (nav.audioSession && nav.audioSession.type !== 'playback') nav.audioSession.type = 'playback';
+    const want = getSoundMode() === 'loud' ? 'playback' : 'ambient';
+    if (nav.audioSession && nav.audioSession.type !== want) nav.audioSession.type = want;
   } catch {
     /* unsupported */
   }
+}
+
+export function unlockAudio() {
+  applyAudioSession();
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;

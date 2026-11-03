@@ -4,9 +4,9 @@ import { db, newId } from '../lib/db';
 import { MUSCLES, type Exercise, type Muscle } from '../lib/types';
 import { IconPlus, IconSearch } from '../components/Icons';
 
-export function useExerciseFilter(exercises: Exercise[] | undefined) {
+export function useExerciseFilter(exercises: Exercise[] | undefined, initialMuscle: Muscle | null = null) {
   const [query, setQuery] = useState('');
-  const [muscle, setMuscle] = useState<Muscle | null>(null);
+  const [muscle, setMuscle] = useState<Muscle | null>(initialMuscle);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (exercises ?? [])
@@ -53,9 +53,20 @@ export const exerciseSubtitle = (e: Exercise) =>
   [e.equipment, e.muscles.join(', ')].filter(Boolean).join(' · ');
 
 /** List of exercises to pick from. Offers to create a custom one if nothing matches. */
-export function ExercisePicker({ onPick }: { onPick: (e: Exercise) => void }) {
-  const exercises = useLiveQuery(() => db.exercises.toArray());
-  const f = useExerciseFilter(exercises);
+export function ExercisePicker({
+  onPick,
+  initialMuscle,
+  exclude,
+}: {
+  onPick: (e: Exercise) => void;
+  /** Start filtered to this muscle (e.g. when swapping). */
+  initialMuscle?: Muscle;
+  /** Hide this exercise id from the list. */
+  exclude?: string;
+}) {
+  const all = useLiveQuery(() => db.exercises.toArray());
+  const exercises = exclude ? all?.filter((e) => e.id !== exclude) : all;
+  const f = useExerciseFilter(exercises, initialMuscle ?? null);
   const q = f.query.trim();
   const exact = exercises?.some((e) => e.name.toLowerCase() === q.toLowerCase());
 

@@ -3,12 +3,19 @@ import { applyImport, buildImport, type ImportPlan } from '../lib/importPlan';
 import { formatRest, WEEK_ORDER, WEEKDAY_SHORT } from '../lib/dates';
 import { formatRepTargets, supersetPositions } from '../lib/session';
 import { NavBar, Section, Sheet } from '../components/ui';
+import { IconCheck } from '../components/Icons';
+import { getSoundMode, playDoneNow, setSoundMode, type SoundMode } from '../lib/sound';
 
 export function SettingsTab({ onImported }: { onImported: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [mode, setMode] = useState<SoundMode>(getSoundMode);
+  const pickMode = (m: SoundMode) => {
+    setSoundMode(m);
+    setMode(m);
+  };
 
   const onFile = async (f: File | undefined) => {
     setError(null);
@@ -27,6 +34,27 @@ export function SettingsTab({ onImported }: { onImported: () => void }) {
     <div className="screen">
       <NavBar />
       <h1 className="large-title">Settings</h1>
+
+      <Section
+        header="Rest timer sound"
+        footer={
+          mode === 'mix'
+            ? 'Chimes play over Spotify or Apple Music without pausing it. iPhone mutes them when the silent switch is on.'
+            : 'Chimes play even with the silent switch on, but iPhone pauses Spotify or Apple Music when they play.'
+        }
+      >
+        <button className="row" onClick={() => pickMode('mix')}>
+          <div className="row-main">Mix with my music</div>
+          {mode === 'mix' && <IconCheck className="check" />}
+        </button>
+        <button className="row" onClick={() => pickMode('loud')}>
+          <div className="row-main">Play through silent switch</div>
+          {mode === 'loud' && <IconCheck className="check" />}
+        </button>
+        <button className="row action" onClick={playDoneNow}>
+          <div className="row-main">Test Sound</div>
+        </button>
+      </Section>
 
       <Section
         header="Import"

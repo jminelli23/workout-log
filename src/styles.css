@@ -738,3 +738,18 @@ button.row:active, .row.pressable:active { background: var(--card-pressed); }
 .sheet .notice.warn { margin: 12px 16px 0; background: color-mix(in srgb, var(--orange) 14%, var(--card)); font-size: 13px; }
 .weekday-pick { display: flex; gap: 6px; padding: 8px 16px; flex-wrap: wrap; }
 .weekday-pick .chip { min-width: 44px; }
+
+.swap-btn {
+  flex: none;
+  align-self: flex-start;
+  border: 0;
+  border-radius: 14px;
+  background: var(--fill);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 12px;
+  height: 32px;
+  margin-top: 2px;
+}
+.swapped { font-size: 13px; font-weight: 600; color: var(--orange); margin-top: 3px; }
