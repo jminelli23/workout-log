@@ -10,6 +10,8 @@ import {
   newSessionExercise,
   sessionFromTemplate,
   sessionStats,
+  supersetPositions,
+  supersetRange,
   updateSession,
 } from '../lib/session';
 import type { Exercise, Session } from '../lib/types';
@@ -82,14 +84,29 @@ export function TodayTab({ date, setDate }: { date: string; setDate: (d: string)
   const mutate = (fn: (s: Session) => void) => session && updateSession(session, fn);
 
   const stats = saved ? sessionStats(saved) : null;
+  const ssPos = session ? supersetPositions(session.exercises) : [];
   const allDone = !!saved && stats!.total > 0 && stats!.sets === stats!.total;
 
-  /** Start rest after completing set i of exercise idx — unless it was the last set left. */
+  /**
+   * Start rest after completing set i of exercise idx — unless it was the last set left.
+   * In a superset, there's no rest until the last exercise of the round; then the
+   * timer uses the last exercise's rest and points back to the first exercise.
+   */
   const startRest = (idx: number, i: number) => {
     if (!session || date !== today) return;
     const exs = session.exercises;
-    const open = (e: number, k: number) => !(e === idx && k === i) && !isSetDone(exs[e].sets[k]);
+    const open = (e: number, k: number) => !!exs[e].sets[k] && !(e === idx && k === i) && !isSetDone(exs[e].sets[k]);
     const se = exs[idx];
+    const nameOf = (e: number) => data.exercises.get(exs[e].exerciseId)?.name ?? 'exercise';
+    const [a, b] = supersetRange(exs, idx);
+    if (a < b) {
+      // Another exercise of this round still to do → go straight to it, no rest.
+      for (let e = idx + 1; e <= b; e++) if (open(e, i)) return restTimer.clear();
+      const rounds = Math.max(...exs.slice(a, b + 1).map((x) => x.sets.length));
+      for (let k = i + 1; k < rounds; k++)
+        for (let e = a; e <= b; e++)
+          if (open(e, k)) return restTimer.start({ date, seId: se.id, setIdx: i, nextLabel: `Round ${k + 1} of ${rounds}: ${nameOf(e)}` }, exs[b].restSec);
+    }
     let label: string | null = null;
     for (let k = i + 1; k < se.sets.length && !label; k++) if (open(idx, k)) label = `Set ${k + 1} of ${se.sets.length}`;
     for (let e = idx + 1; e < exs.length && !label; e++)
@@ -211,6 +228,7 @@ export function TodayTab({ date, setDate }: { date: string; setDate: (d: string)
           exercise={data.exercises.get(se.exerciseId)}
           last={last?.get(se.exerciseId)?.sets}
           timer={timer && timer.date === date && timer.seId === se.id ? timer : undefined}
+          superset={ssPos[idx]}
           editing={editing}
           isFirst={idx === 0}
           isLast={idx === session.exercises.length - 1}

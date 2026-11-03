@@ -1,6 +1,6 @@
 import type { Exercise, SessionExercise, SessionSet } from '../lib/types';
 import { formatRest } from '../lib/dates';
-import { isSetDone } from '../lib/session';
+import { formatRepTargets, isSetDone, repTarget, type SupersetPos } from '../lib/session';
 import { IconDown, IconTrash, IconUp } from './Icons';
 import { SetRow } from './SetRow';
 import { RestTimerInline } from './RestTimerInline';
@@ -12,6 +12,7 @@ export function ExerciseCard({
   exercise,
   last,
   timer,
+  superset,
   editing,
   isFirst,
   isLast,
@@ -28,6 +29,7 @@ export function ExerciseCard({
   last?: SessionSet[];
   /** The active rest timer, if it belongs to this exercise. */
   timer?: RestTimer;
+  superset?: SupersetPos;
   editing: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -46,8 +48,8 @@ export function ExerciseCard({
       ? se.targetSec
         ? ` × ${formatRest(se.targetSec)}`
         : ''
-      : se.targetReps
-        ? ` × ${se.targetReps}`
+      : formatRepTargets(se)
+        ? ` × ${formatRepTargets(se)}`
         : '';
 
   const hintFor = (i: number): SessionSet => {
@@ -55,21 +57,23 @@ export function ExerciseCard({
       const l = last[Math.min(i, last.length - 1)];
       return { weight: l.weight, reps: l.reps, durationSec: l.durationSec };
     }
-    return { reps: se.targetReps, durationSec: se.targetSec };
+    return { reps: repTarget(se, i), durationSec: se.targetSec };
   };
 
   const allDone = doneCount === se.sets.length && se.sets.length > 0;
 
   return (
-    <div className="ex-card">
+    <div className={`ex-card ${superset ? `ss ss-${superset.pos}` : ''}`}>
       <div className="ex-head">
         <div className="row-main" style={{ padding: 0 }}>
+          {superset && <span className="ss-chip">Superset {superset.letter}</span>}
           <div className={`ex-name ${allDone ? 'complete' : ''}`}>{exercise?.name ?? 'Unknown exercise'}</div>
           <div className="row-sub">
             {se.sets.length} set{se.sets.length === 1 ? '' : 's'}
             {target} · Rest {formatRest(se.restSec)}
             {doneCount > 0 && !allDone && ` · ${doneCount}/${se.sets.length} done`}
           </div>
+          {se.notes && <div className="ex-notes">{se.notes}</div>}
         </div>
         {editing && (
           <>

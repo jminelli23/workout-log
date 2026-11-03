@@ -43,11 +43,17 @@ export interface TemplateItem {
   id: string;
   exerciseId: string;
   sets: number;
-  /** Target reps per set (weighted/bodyweight). Drives the "Try +5 lb" hint. */
+  /** Target reps for every set (weighted/bodyweight). Drives the "Try +5 lb" hint. */
   targetReps?: number;
+  /** Per-set rep targets, e.g. [10, 8, 6, 4]. Takes precedence over targetReps. */
+  repsPerSet?: number[];
   /** Target seconds per set (duration exercises). */
   targetSec?: number;
   restSec: number;
+  /** Shown under the exercise name while logging. */
+  notes?: string;
+  /** Consecutive items sharing an id form a superset; rest runs after the last one. */
+  supersetId?: string;
 }
 
 export interface Template {
@@ -108,7 +114,10 @@ export interface SessionExercise {
   exerciseId: string;
   restSec: number;
   targetReps?: number;
+  repsPerSet?: number[];
   targetSec?: number;
+  notes?: string;
+  supersetId?: string;
   sets: SessionSet[];
 }
 

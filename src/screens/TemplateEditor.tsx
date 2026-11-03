@@ -4,6 +4,7 @@ import { db, newId } from '../lib/db';
 import { formatRest } from '../lib/dates';
 import type { Exercise, Template, TemplateItem, Weekdays } from '../lib/types';
 import { NavBar, Section, Sheet, Stepper } from '../components/ui';
+import { formatRepTargets, parseRepTargets, supersetPositions, supersetRange } from '../lib/session';
 import { IconDown, IconPlus, IconTrash, IconUp } from '../components/Icons';
 import { ExercisePicker, exerciseSubtitle } from './ExercisePicker';
 
@@ -58,6 +59,25 @@ export function TemplateEditor({ id, isNew, onBack }: { id: string; isNew?: bool
     setItems(items);
   };
 
+  /** Join item idx and the next item (and its group) into one superset. */
+  const link = (idx: number) => {
+    const items = [...tpl.items];
+    const id = items[idx].supersetId ?? newId();
+    const [, b] = supersetRange(items, idx + 1);
+    for (let k = idx; k <= b; k++) items[k] = { ...items[k], supersetId: id };
+    setItems(items);
+  };
+  /** Split the superset between idx and idx + 1. */
+  const unlink = (idx: number) => {
+    const items = [...tpl.items];
+    const [a, b] = supersetRange(items, idx);
+    const tailId = b - idx > 1 ? newId() : undefined;
+    for (let k = idx + 1; k <= b; k++) items[k] = { ...items[k], supersetId: tailId };
+    if (idx === a) items[idx] = { ...items[idx], supersetId: undefined };
+    setItems(items);
+  };
+  const ss = supersetPositions(tpl.items);
+
   const addExercise = (e: Exercise) => {
     const item: TemplateItem = {
       id: newId(),
@@ -104,14 +124,16 @@ export function TemplateEditor({ id, isNew, onBack }: { id: string; isNew?: bool
         {tpl.items.map((item, idx) => {
           const ex = byId.get(item.exerciseId);
           const isDuration = ex?.kind === 'duration';
+          const linked = idx < tpl.items.length - 1 && !!item.supersetId && tpl.items[idx + 1].supersetId === item.supersetId;
           return (
             <div key={item.id} className="row-wrap">
-              <div className="item-card">
+              <div className={`item-card ${ss[idx] ? 'in-superset' : ''}`}>
                 <div className="item-head">
                   <div className="row-main">
                     <div className="row-title" style={{ fontWeight: 600 }}>
                       {ex?.name ?? 'Unknown exercise'}
                     </div>
+                    {ss[idx] && <span className="ss-chip">Superset {ss[idx]!.letter}</span>}
                     {ex && <div className="row-sub">{exerciseSubtitle(ex)}</div>}
                   </div>
                   <button className="icon-btn" aria-label="Move up" disabled={idx === 0} onClick={() => move(idx, -1)}>
@@ -153,12 +175,16 @@ export function TemplateEditor({ id, isNew, onBack }: { id: string; isNew?: bool
                   ) : (
                     <div className="item-field">
                       <label>Target reps</label>
-                      <Stepper
-                        value={item.targetReps ?? 0}
-                        min={0}
-                        max={50}
-                        format={(v) => (v ? String(v) : '—')}
-                        onChange={(v) => patchItem(item.id, { targetReps: v || undefined })}
+                      <input
+                        className="field-input"
+                        defaultValue={formatRepTargets(item)}
+                        placeholder="e.g. 8 or 10/8/6/4"
+                        inputMode="text"
+                        onBlur={(e) => {
+                          const t = parseRepTargets(e.target.value);
+                          e.target.value = formatRepTargets(t);
+                          patchItem(item.id, t);
+                        }}
                       />
                     </div>
                   )}
@@ -166,8 +192,27 @@ export function TemplateEditor({ id, isNew, onBack }: { id: string; isNew?: bool
                     <label>Rest</label>
                     <RestSelect value={item.restSec} onChange={(restSec) => patchItem(item.id, { restSec })} />
                   </div>
+                  {ss[idx] && ss[idx]!.pos !== 'last' && (
+                    <div className="section-footer" style={{ padding: 0, marginTop: -4 }}>
+                      In a superset, rest runs after the last exercise of the group.
+                    </div>
+                  )}
+                  <div className="item-field">
+                    <textarea
+                      rows={2}
+                      className="field-input notes"
+                      defaultValue={item.notes ?? ''}
+                      placeholder="Notes (optional)"
+                      onBlur={(e) => patchItem(item.id, { notes: e.target.value.trim() || undefined })}
+                    />
+                  </div>
                 </div>
               </div>
+              {idx < tpl.items.length - 1 && (
+                <button className={`ss-link ${linked ? 'on' : ''}`} onClick={() => (linked ? unlink(idx) : link(idx))}>
+                  {linked ? '⛓ Linked as superset · Unlink' : '+ Superset with next'}
+                </button>
+              )}
             </div>
           );
         })}

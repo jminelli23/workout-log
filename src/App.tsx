@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { IconCalendar, IconProgram, IconSettings, IconToday } from './components/Icons';
-import { Placeholder } from './components/ui';
 import { todayISO } from './lib/dates';
 import { CalendarTab } from './screens/CalendarTab';
 import { ProgramTab } from './screens/ProgramTab';
 import { TodayTab } from './screens/TodayTab';
+import { SettingsTab } from './screens/SettingsTab';
 
 type Tab = 'today' | 'calendar' | 'program' | 'settings';
 
@@ -40,7 +40,7 @@ export default function App() {
         />
       )}
       {tab === 'program' && <ProgramTab />}
-      {tab === 'settings' && <Placeholder title="Settings" text="Backup, restore and import arrive in step 6." />}
+      {tab === 'settings' && <SettingsTab onImported={() => undefined} />}
 
       <nav className="tabbar">
         {TABS.map(({ id, label, Icon }) => (
